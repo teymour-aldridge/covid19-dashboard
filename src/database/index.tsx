@@ -360,7 +360,7 @@ export const getFacilityModelVersions = async ({
 export const saveFacility = async (
   scenarioId: string,
   facility: any,
-): Promise<void> => {
+): Promise<Facility | void> => {
   try {
     const scenarioRef = await getScenarioRef(scenarioId);
 
@@ -435,7 +435,11 @@ export const saveFacility = async (
       batch.set(newModelVersionDoc, facility.modelInputs);
     }
 
+
     await batch.commit();
+
+    return buildFacility(scenarioId, facilityDoc);
+
   } catch (error) {
     console.error("Encountered error while attempting to save a facility:");
     console.error(error);
