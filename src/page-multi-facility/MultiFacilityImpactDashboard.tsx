@@ -13,12 +13,12 @@ import useFacilitiesRtData from "../hooks/useFacilitiesRtData";
 import { EpidemicModelProvider } from "../impact-dashboard/EpidemicModelContext";
 import { useLocaleDataState } from "../locale-data-context";
 import useScenario from "../scenario-context/useScenario";
-import { FacilityContext } from "./FacilityContext";
 import FacilityRow from "./FacilityRow";
 import ProjectionsHeader from "./ProjectionsHeader";
 import RateOfSpreadPanel from "./RateOfSpreadPanel";
 import ScenarioSidebar from "./ScenarioSidebar";
 import { Facilities } from "./types";
+import { useFacilities, FacilitiesState } from "../facilities-context";
 
 const MultiFacilityImpactDashboardContainer = styled.main.attrs({
   className: `
@@ -72,42 +72,16 @@ const ScenarioTab = styled.li<{ active?: boolean }>`
       : null}
 `;
 
-interface ScenarioPanelsProps {
-  selectedTabIndex: number;
-}
-
 const MultiFacilityImpactDashboard: React.FC = () => {
   const { data: localeDataSource } = useLocaleDataState();
   const [scenario] = useScenario();
+  const { state: facilitiesState } = useFacilities();
+  const facilities = Object.values(facilitiesState.facilities);
+  const showRateOfSpreadTab = useFlag(["showRateOfSpreadTab"]);
 
-  const { setFacility } = useContext(FacilityContext);
-
-  const [facilities, setFacilities] = useState<FetchedFacilities>({
-    data: [] as Facilities,
-    loading: true,
-  });
-
-  async function fetchFacilities() {
-    if (!scenario?.data?.id) return;
-
-    const facilitiesData = await getFacilities(scenario.data.id);
-
-    if (facilitiesData) {
-      setFacilities({
-        data: facilitiesData,
-        loading: false,
-      });
-    }
-  }
-
-  useEffect(() => {
-    fetchFacilities();
-  }, [scenario.data?.id]);
-
-  useFacilitiesRtData(facilities.data);
+  useFacilitiesRtData(facilities);
 
   const openAddFacilityPage = () => {
-    setFacility(null);
     navigate("/facility");
   };
 
@@ -116,10 +90,10 @@ const MultiFacilityImpactDashboard: React.FC = () => {
   const projectionsPanel = (
     <>
       <ProjectionsHeader />
-      {facilities.loading ? (
+      {facilitiesState.loading ? (
         <Loading />
       ) : (
-        facilities?.data.map((facility) => {
+        facilities.map((facility) => {
           return (
             <EpidemicModelProvider
               key={facility.id}
@@ -134,13 +108,12 @@ const MultiFacilityImpactDashboard: React.FC = () => {
     </>
   );
 
-  const showRateOfSpreadTab = useFlag(["showRateOfSpreadTab"]);
   return (
     <MultiFacilityImpactDashboardContainer>
       {scenario.loading ? (
         <Loading />
       ) : (
-        <ScenarioSidebar numFacilities={facilities?.data.length} />
+        <ScenarioSidebar numFacilities={facilities?.length} />
       )}
       <div className="flex flex-col flex-1 pb-6 pl-8 justify-start">
         <div className="flex flex-row flex-none justify-between items-start">
@@ -168,7 +141,7 @@ const MultiFacilityImpactDashboard: React.FC = () => {
           </ScenarioTabs>
         </div>
         {selectedTab === 0 && projectionsPanel}
-        {selectedTab === 1 && <RateOfSpreadPanel facilities={facilities} />}
+        {selectedTab === 1 && <RateOfSpreadPanel facilities={facilitiesState} />}
       </div>
     </MultiFacilityImpactDashboardContainer>
   );
